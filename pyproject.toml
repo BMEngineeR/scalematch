@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scalematch"
+version = "0.1.0"
+description = "Explain a region or field on a tissue section by genes, scale by scale: calibrated graph bands, band-matched sparse regression, held-out scoring against chance."
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [{name = "Yuzhou Chang"}]
+dependencies = ["numpy>=1.23", "scipy>=1.9", "pandas>=1.5"]
+
+[project.optional-dependencies]
+io = ["h5py>=3", "anndata>=0.9"]
+plot = ["matplotlib>=3.6"]
+dev = ["pytest", "h5py", "anndata", "matplotlib", "nbformat", "nbclient", "ipykernel"]
+
+[project.scripts]
+scalematch = "scalematch.cli:main"
+
+[tool.setuptools]
+packages = ["scalematch"]
