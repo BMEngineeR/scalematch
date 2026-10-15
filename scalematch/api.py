@@ -128,8 +128,9 @@ def explain(counts, genes, coords, target, pitch_um, *, exclude_genes=(), sigmas
     for kind in null_kinds:
         for i in range(n_null):
             if kind == "rigid":
-                yn = rigid = (nulls.rigid_mask(y > 0.5, coords_k, pitch_units, rng).astype(float) if is_region
-                              else nulls.rigid_field(y, coords_k, pitch_units, rng))
+                yn = (nulls.rigid_mask(y > 0.5, coords_k, pitch_units, rng) if is_region
+                      else nulls.rigid_field(y, coords_k, pitch_units, rng))
+                yn = None if yn is None else yn.astype(float)
             elif kind == "surrogate":
                 yn, _ = nulls.surrogate_field(ybands, L, pitch_um, sigmas, rng)
             elif kind == "blob":

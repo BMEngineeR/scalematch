@@ -16,17 +16,34 @@ def _place(coords, pts, pitch, tree):
 
 
 def rigid_mask(mask, coords, pitch, rng, tries=400, min_mapped=0.8):
-    """The 0/1 region as a cut-out: random rotation, a flip half the time, random centre."""
+    """The 0/1 region as a cut-out: random rotation, a flip half the time, random centre.
+
+    Random rotations are tried first. On an elongated section, or for a region scattered along
+    it, they rarely land on tissue, so the second half of the tries uses the lattice-preserving
+    moves (identity, two mirrors, 180 degrees, about the section centre) with a translation of
+    2-12% of the long axis (at least 4 pitches), as ``rigid_field`` does.
+    """
     coords = np.asarray(coords, float)
     tree = cKDTree(coords)
+    mask = np.asarray(mask, bool)
     src = coords[mask] - coords[mask].mean(0)
     n = int(mask.sum())
-    for _ in range(tries):
-        th = rng.uniform(0, 2 * np.pi)
-        R = np.array([[np.cos(th), -np.sin(th)], [np.sin(th), np.cos(th)]])
-        if rng.uniform() < 0.5:
-            R = R @ np.diag([1.0, -1.0])
-        pts = src @ R.T + coords[int(rng.integers(len(coords)))]
+    c = coords.mean(0)
+    span = np.ptp(coords, axis=0)
+    ax = int(np.argmax(span))
+    for attempt in range(tries):
+        if attempt < tries // 2:
+            th = rng.uniform(0, 2 * np.pi)
+            R = np.array([[np.cos(th), -np.sin(th)], [np.sin(th), np.cos(th)]])
+            if rng.uniform() < 0.5:
+                R = R @ np.diag([1.0, -1.0])
+            pts = src @ R.T + coords[int(rng.integers(len(coords)))]
+        else:
+            R = [np.diag([1.0, 1.0]), np.diag([-1.0, 1.0]), np.diag([1.0, -1.0]), np.diag([-1.0, -1.0])][int(rng.integers(4))]
+            shift = np.zeros(2)
+            shift[ax] = max(rng.uniform(0.02, 0.12) * span[ax], 4 * pitch) * (1 if rng.uniform() < 0.5 else -1)
+            shift[1 - ax] = rng.uniform(-0.02, 0.02) * span[1 - ax]
+            pts = (coords[mask] - c) @ R + c + shift
         ok, idx = _place(coords, pts, pitch, tree)
         if ok.mean() < min_mapped:
             continue

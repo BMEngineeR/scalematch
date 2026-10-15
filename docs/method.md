@@ -19,6 +19,8 @@
 | `null_kinds` | `"rigid"`, `"surrogate"`, `"blob"` | `("rigid",)` |
 | `n_null` | draws per null kind | 40 |
 
+Helpers for building a target: `programme_score` (mean log CP10K of a gene list), `aggregate_bins` and `aggregate_labels` (counts summed and majority labels over `factor x factor` blocks of a binned array), `clean_region` (drops the connected pieces of a 0/1 region under a chosen size). Any 0/1 or float vector over the units is a valid target.
+
 Choosing `sigmas`: the bands are physical, so the same values compare across platforms. The default 40/200 µm puts a glomerulus (about 150 µm) in the MID band on Visium HD or imaging data. On Visium (100 µm pitch) the shortest representable wavelength is 200 µm, so 40 µm is below the lattice; use `(70, 200)` and read the MID band as the spot-to-spot band.
 
 ## Graph
@@ -37,7 +39,7 @@ Held-out: `n_strips` strips of equal count cut perpendicular to an axis; for a r
 
 ## Chance references
 
-* `rigid`: for a region, the mask as a cut-out, rotated by a random angle, flipped half the time, centred on a random unit (kept if at least 80% lands on tissue); for a field, the whole field moved rigidly (random rotation first; on elongated sections the lattice-preserving moves with a translation of 2–12% of the long axis).
+* `rigid`: for a region, the mask as a cut-out, rotated by a random angle, flipped half the time, centred on a random unit (kept if at least 80% lands on tissue); for a field, the whole field moved rigidly. In both cases random rotations are tried first and, when they do not land on tissue (elongated sections, regions scattered along them), the lattice-preserving moves about the section centre with a translation of 2–12% of the long axis are used instead. A draw that finds no placement is skipped.
 * `surrogate`: white noise split into the bands, each band rescaled to the target's band standard deviation, summed: same spectrum, no anatomy.
 * `blob`: a connected region grown from a random seed one random neighbour at a time, to the size of the target region.
 

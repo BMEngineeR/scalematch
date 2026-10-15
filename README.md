@@ -7,7 +7,7 @@ Give it one section (coordinates and counts) and one target: a drawn region as 0
 Two uses:
 
 * **Is this region supported by the data?** A coherence score with a chance reference. The score falls when a region is moved off its structure (brain layer 1: 0.55 as drawn, 0.41 moved by one spot, 0.12 moved by three, 0.11 for a random region of the same size) and holds when the region is grown (0.49).
-* **Which genes explain it, and at which scale?** For glomeruli in Visium HD kidney cortex the medium band (40–200 µm) is reproduced at 0.79 on unseen tissue, against a random field with the same spectrum at about −0.2; its carriers are NES, NPNT and RIPOR1 (podocyte and glomerular basement membrane genes), while C7 and PLPP1 carry the coarse band. The genes that define the target are withheld, so these are found, not planted.
+* **Which genes explain it, and at which scale?** For glomeruli in Visium HD kidney cortex the medium band (40–200 µm) is reproduced at 0.79 on unseen tissue, against a random field with the same spectrum at about −0.2; its carriers are NES, NPNT and RIPOR1 (podocyte and glomerular basement membrane genes), while C7 and PLPP1 carry the coarse band. The genes that define the target are withheld, so these are found, not planted. Drawn as a region (twelve glomeruli from the Space Ranger clustering), the target is MID-dominated (band shares 0.09 / 0.33 / 0.27) and its medium band is reproduced at 0.92, against −0.24 for the same outlines placed elsewhere.
 
 ## Install
 
@@ -40,10 +40,30 @@ scalematch explain --h5ad section.h5ad --pitch-um 16 --signature NPHS1 NPHS2 POD
 scalematch explain --h5ad section.h5ad --pitch-um 100 --target-obs layer --positive L1 --sigmas 70 200 --out out/L1
 ```
 
+## Reading the output
+
+`res.summary()` answers three questions; the rest of the output is supporting detail.
+
+**1. Is the structure real?** `p` and `excess`. The target is placed elsewhere on the section (`rigid`), replaced by a random connected region of the same size (`blob`) or by a random field with the same spectrum (`surrogate`), and every copy is scored exactly as the target was. `excess` is the observed value minus the mean of the copies. `p` is the share of copies that did as well and cannot go below 1/(n + 1): 0.048 with 20 draws means none of the 20 came close, not a precise probability. Twelve glomeruli drawn as a region: MID band explained 0.92; the same twelve outlines placed elsewhere, −0.24; random regions of the same size, −0.42.
+
+**2. How big is it?** `explained per band`. Each band of the target is scored on its own, and the band with the high number is the size of the structure; a negative value (worse than the band's mean) reads as zero. Glomeruli: LOW 0.97, MID 0.92, HIGH 0.22, a 40–200 µm structure whose rims are only partly predictable. Cortex layer 1 on Visium: LOW 0.74, MID 0.05, HIGH −0.11, a broad band with nothing finer in it (nothing finer than 200 µm is representable at a 100 µm pitch either).
+
+**3. Which genes carry it?** `gene_table`, sorted by the `rms_` column of that band. Glomeruli, MID band: EMCN and IGFBP5 with a positive sign; RGS5, COL1A1 and C7 with a negative sign, so where they rise the target falls. `modules` is the bench: `covered` genes belong with a selected gene (ETS1, EGFL7 and ENG with the endothelial representatives), `relevant-uncovered` genes are related but the 30-gene budget left them out.
+
+The supporting numbers: `A` and `best` are the overall held-out score from 0 to 1 (`best` the peak over 1–30 genes, `A` the mean, so `A` is high when a few genes already do well); `target band shares` are the target's own make-up, to be read with the explained values, since a band with a large share and a low explained value is noise (the podocyte score keeps 56% of its variance in HIGH and the fit explains 11% of it); `raw` is the genes fitted unsplit, which falls below `perband` whenever the scale separation is doing work.
+
+Three targets, read this way:
+
+| target | pitch | shares LOW / MID / HIGH | explained LOW / MID / HIGH | reading |
+|---|---|---|---|---|
+| cortex layer 1, drawn region (Visium) | 100 µm | 0.74 / 0.05 / 0.03 | 0.74 / 0.05 / −0.11 | a broad band; coarse structure only |
+| twelve glomeruli, drawn region (Visium HD) | 16 µm | 0.09 / 0.33 / 0.27 | 0.97 / 0.92 / 0.22 | a MID-sized structure; the rims only partly predictable |
+| podocyte score, field (Visium HD) | 16 µm | 0.08 / 0.16 / 0.56 | 0.92 / 0.79 / 0.11 | the same structure under bin-level grain; HIGH is the grain |
+
 ## Tutorials
 
 * [`tutorials/01_region_visium_dlpfc.ipynb`](tutorials/01_region_visium_dlpfc.ipynb): a drawn region on Visium (human DLPFC 151673, public): score, chance reference, genes, and what happens when the region is moved or grown.
-* [`tutorials/02_continuous_target_visium_hd.ipynb`](tutorials/02_continuous_target_visium_hd.ipynb): a programme score on Visium HD kidney at 16 µm bins: the glomeruli live in the medium band, which genes carry it, and the module table.
+* [`tutorials/02_continuous_target_visium_hd.ipynb`](tutorials/02_continuous_target_visium_hd.ipynb): a programme score on Visium HD kidney at 16 µm bins: the glomeruli live in the medium band, which genes carry it, the module table, and the same glomeruli drawn as a region, a MID-dominated target.
 
 Both notebooks are stored with their outputs.
 

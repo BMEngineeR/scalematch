@@ -70,3 +70,24 @@ def neighbours(A):
     """List of neighbour index arrays, one per node."""
     A = A.tocsr()
     return [A.indices[A.indptr[i]:A.indptr[i + 1]] for i in range(A.shape[0])]
+
+
+def clean_region(mask, coords, min_units=20, kind="auto"):
+    """Drop the connected pieces of a 0/1 region that have fewer than ``min_units`` units.
+
+    Returns the cleaned mask and, for the kept units, a component label (-1 outside the region).
+    """
+    coords = np.asarray(coords, float)
+    mask = np.asarray(mask, bool)
+    A, _, keep, _ = build_graph(coords, kind=kind)
+    idx = np.where(keep)[0]
+    m = mask[keep]
+    sub = A[m][:, m]
+    _, lab = connected_components(sub, directed=False)
+    sizes = np.bincount(lab)
+    good = sizes[lab] >= min_units
+    out = np.zeros(len(mask), bool)
+    out[idx[np.where(m)[0][good]]] = True
+    comp = np.full(len(mask), -1)
+    comp[idx[np.where(m)[0][good]]] = np.unique(lab[good], return_inverse=True)[1]
+    return out, comp

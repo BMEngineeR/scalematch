@@ -27,3 +27,21 @@ def test_kidney16(target):
     best, mid = EXPECTED[target]
     assert abs(res.scores["perband"]["best"] - best) < 0.01
     assert abs(res.band_explained["perband"]["MID"] - mid) < 0.01
+
+
+@pytest.mark.skipif(not os.path.exists(H5AD), reason="kidney data not available")
+def test_kidney16_glomerulus_region():
+    """Twelve glomeruli from the Space Ranger clustering as a 0/1 region: a MID-dominated target."""
+    import anndata as ad
+    from scalematch import explain, aggregate_bins, aggregate_labels, clean_region
+    a = ad.read_h5ad(H5AD)
+    counts, r, c, members = aggregate_bins(a.X, a.obs["grid_row"], a.obs["grid_col"], 2)
+    coords = np.column_stack([c * 16.0, r * 16.0])
+    cl = aggregate_labels(a.obs["cluster"].astype(int), a.obs["grid_row"], a.obs["grid_col"], 2)
+    glom, comp = clean_region(cl == 4, coords, min_units=20)
+    assert glom.sum() == 1123 and comp.max() + 1 == 12
+    res = explain(counts, np.asarray(a.var_names), coords, glom, pitch_um=16.0, exclude_genes=SIG["podocyte"], sigmas=(40, 200),
+                  designs=("perband",), null_kinds=(), n_null=0, verbose=False)
+    assert res.band_shares["MID"] > res.band_shares["LOW"] and res.band_shares["MID"] > res.band_shares["HIGH"]
+    assert abs(res.scores["perband"]["best"] - 0.723) < 0.01
+    assert abs(res.band_explained["perband"]["MID"] - 0.92) < 0.01

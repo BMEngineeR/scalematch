@@ -46,6 +46,17 @@ def aggregate_bins(counts, row, col, factor):
     return agg, uniq // 100000, uniq % 100000, members
 
 
+def aggregate_labels(labels, row, col, factor):
+    """Majority label of the source bins in every ``factor x factor`` block, in the order of ``aggregate_bins``."""
+    import pandas as pd
+    row = np.asarray(row).astype(int) // factor
+    col = np.asarray(col).astype(int) // factor
+    key = row * 100000 + col
+    uniq, inv = np.unique(key, return_inverse=True)
+    maj = pd.DataFrame(dict(b=inv, lab=np.asarray(labels))).groupby("b").lab.agg(lambda s: s.value_counts().index[0])
+    return maj.reindex(np.arange(len(uniq))).to_numpy()
+
+
 def programme_score(counts, genes, signature):
     """Mean log CP10K of a gene signature per unit: a continuous target from a gene list."""
     from .dictionary import log_cp10k
