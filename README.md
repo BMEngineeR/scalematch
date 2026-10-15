@@ -60,10 +60,6 @@ See [`docs/method.md`](docs/method.md) for details, defaults and limitations.
 * Non-linear explanations. The model is linear in the band-filtered genes.
 * Pitch and structure size. Mid-band explanations need bins well below the structure size: on one kidney section re-sampled from 16 to 96 µm the MID-band explained variance fell from 0.80 to 0.46, and to 0.15 on a virtual Visium lattice. On Visium (100 µm pitch) anything under 200 µm is below the sampling limit.
 
-## Citation
-
-Chang, Y. Scale-matched explanation of tissue regions. In preparation (2026). Bands follow Hammond, Vandergheynst & Gribonval, *Appl. Comput. Harmon. Anal.* 2011; the DLPFC data are from Maynard et al., *Nat. Neurosci.* 2021.
-
 ## License
 
 MIT.
