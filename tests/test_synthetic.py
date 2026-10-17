@@ -1,6 +1,6 @@
 """Fast checks on a synthetic lattice: bands add up, a planted region is recovered, nulls score lower."""
 import numpy as np
-from scalematch import explain, build_graph, split, make_strips
+from scalematch import explain, confidence, build_graph, split, make_strips
 
 
 def make_section(seed=0, n=40):
@@ -45,3 +45,15 @@ def test_strips_balanced():
     block = make_strips(coords, 5)
     counts = np.bincount(block)
     assert len(counts) == 5 and counts.min() > 150
+
+
+def test_confidence_supports_planted_genes():
+    counts, genes, coords, region, A, L, pitch = make_section()
+    res = explain(counts, genes, coords, region, pitch_um=10.0, sigmas=(30, 120), n_genes=100, kmax=10,
+                  designs=("perband",), null_kinds=(), n_null=0, verbose=False)
+    conf = confidence(res, n_null=20, n_resample=20, k_sel=6, n_null_stability=2, n_resample_null=10, verbose=False)
+    planted = {"G000", "G001", "G002", "G003", "G004"}
+    assert len(planted & set(conf.supported)) >= 4
+    assert conf.supported_fit["best"] > 0.6
+    assert conf.null_max_alone.max() < conf.table.alone.max()
+    assert {"alone", "p", "drop", "freq", "sign_consistency", "module"} <= set(conf.table.columns)

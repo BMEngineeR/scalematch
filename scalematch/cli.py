@@ -20,6 +20,12 @@ def main(argv=None):
     e.add_argument("--nulls", nargs="*", default=["rigid"], choices=["rigid", "surrogate", "blob"])
     e.add_argument("--n-null", type=int, default=40)
     e.add_argument("--designs", nargs="*", default=["perband", "raw"], choices=["perband", "raw", "concat"])
+    e.add_argument("--confidence", action="store_true", help="also run the gene-level confidence (half-samplings, null calibration, ablation)")
+    e.add_argument("--n-null-conf", type=int, default=20, help="random placements for the gene-level bar")
+    e.add_argument("--n-resample", type=int, default=100)
+    e.add_argument("--k-sel", type=int, default=15)
+    e.add_argument("--alpha", type=float, default=0.05)
+    e.add_argument("--tau", type=float, default=0.8)
     e.add_argument("--out", required=True)
     e.add_argument("--seed", type=int, default=0)
     a = p.parse_args(argv)
@@ -48,6 +54,9 @@ def main(argv=None):
         sys.exit("give --target-obs or --signature")
     res = explain(counts, genes, coords, target, a.pitch_um, exclude_genes=exclude, sigmas=tuple(a.sigmas),
                   n_genes=a.n_genes, kmax=a.kmax, designs=tuple(a.designs), null_kinds=tuple(a.nulls), n_null=a.n_null, seed=a.seed)
+    if a.confidence:
+        from .confidence import confidence
+        confidence(res, n_null=a.n_null_conf, n_resample=a.n_resample, k_sel=a.k_sel, alpha=a.alpha, tau=a.tau, seed=a.seed)
     res.save(a.out)
     print(res.summary())
 

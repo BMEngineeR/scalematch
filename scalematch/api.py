@@ -32,6 +32,12 @@ class Result:
     contributions: dict              # band -> (N x k) contribution vectors
     modules: pd.DataFrame            # every dictionary gene, status against the selected set
     meta: dict = field(default_factory=dict)
+    # kept in memory for ``confidence`` and further fits; not written by ``save``
+    X: np.ndarray = None             # dictionary, log CP10K, units x genes
+    Xbands: dict = None              # band -> units x genes
+    L: object = None                 # normalised Laplacian (sparse)
+    block: np.ndarray = None         # held-out strip label per unit
+    confidence: object = None        # filled by ``scalematch.confidence``
 
     def summary(self, design="perband"):
         s = self.scores[design]
@@ -45,6 +51,8 @@ class Result:
                 lines.append(f"{key}: p = {p['p']:.3f}, excess over null mean = {p['excess']:+.3f} (n = {p['n']})")
         top = self.gene_table.head(10)
         lines.append("top genes (order, dominant band): " + ", ".join(f"{g} ({d})" for g, d in zip(top.gene, top.dominant)))
+        if self.confidence is not None:
+            lines.append(self.confidence.summary())
         return "\n".join(lines)
 
     def save(self, outdir):
@@ -62,6 +70,16 @@ class Result:
                     scores={d: {k: v for k, v in s.items() if k != "nmse" and k != "oof"} for d, s in self.scores.items()},
                     band_explained=self.band_explained, **self.meta)
         json.dump(meta, open(os.path.join(outdir, "summary.json"), "w"), indent=1)
+        if self.confidence is not None:
+            c = self.confidence
+            c.table.to_csv(os.path.join(outdir, "confidence.csv"), index=False)
+            c.modules.to_csv(os.path.join(outdir, "confidence_modules.csv"), index=False)
+            meta["confidence"] = dict(supported=c.supported, stable=c.stable, alpha=c.alpha, tau=c.tau, k_sel=c.k_sel,
+                                      n_resample=c.n_resample, n_tiles=c.n_tiles, tile_um=c.tile_um, n_null=c.n_null,
+                                      null_max_alone=c.null_max_alone.tolist(), null_max_module=c.null_max_module.tolist(),
+                                      null_max_freq=c.null_max_freq.tolist(), expected_false_stable=c.expected_false_stable,
+                                      supported_fit=c.supported_fit, full_fit=c.full_fit)
+            json.dump(meta, open(os.path.join(outdir, "summary.json"), "w"), indent=1)
         open(os.path.join(outdir, "summary.txt"), "w").write(self.summary() + "\n")
 
 
@@ -170,4 +188,5 @@ def explain(counts, genes, coords, target, pitch_um, *, exclude_genes=(), sigmas
                   band_explained=bexpl, oof=oof, null_scores=null_df, p_values=pvals, gene_table=gtab,
                   contributions=contrib, modules=mods,
                   meta=dict(kmax=kmax, n_strips=n_strips, n_null=n_null, null_kinds=list(null_kinds), seed=seed,
-                            runtime_s=time.time() - t0, counts_per_unit_median=float(np.median(tot))))
+                            pitch_units=float(pitch_units), runtime_s=time.time() - t0, counts_per_unit_median=float(np.median(tot))),
+                  X=X, Xbands=Xbands, L=L, block=block)

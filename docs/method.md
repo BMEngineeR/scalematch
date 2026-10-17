@@ -51,9 +51,21 @@ Full-data fit at `kmax`. Contribution of gene j in band b: `c_{b,j} = z_{b,j} β
 
 `modules`: for every dictionary gene and band, `relevance` = |correlation| of the gene's band with the target's band; `coverage` = R² of the gene's band on the selected genes' bands; `representative` = the selected gene with the largest coefficient in that regression; `status` = selected / covered (relevance ≥ 0.3 and coverage ≥ 0.5) / relevant-uncovered / unrelated.
 
+## Gene-level confidence
+
+`confidence(res)` works on the band-split dictionary kept in the Result (so it runs in the same session as `explain`). It reports three readings per gene, and the first carries the p value.
+
+* `alone`: the gene fitted on its own, one slope per band on the training strips, scored on the held-out strips (1 − NMSE); `alone_<band>` the same within one band against the band's own variance. Every dictionary gene gets this number. The same is computed for `n_null` random rigid placements of the target; `p = (#placements whose best single gene reached the gene's value + 1)/(n_null + 1)`. Because the bar is the best of all dictionary genes on each placement, it already accounts for the search over genes. A gene with `p <= alpha` is *supported*.
+* `drop`: the held-out error rises by this fraction of the target's variance when the gene is removed from the fold's selected set and the remaining genes are refitted (selection is not repeated). This is necessity; genes that stand in for one another have a large `alone` and a small `drop`.
+* `freq`: selection frequency among the first `k_sel` genes over `n_resample` half-samplings of the section (complementary halves of square tiles of side `tile_um`, default 2 σ_L, shrunk until there are at least 30 tiles); `sign_consistency` is how often the coefficient in the gene's dominant band keeps its sign when the gene is selected. `expected_false_stable` is the Meinshausen–Bühlmann bound `q² / ((2 τ − 1) p)` with `q` the mean number of genes selected per run and `p` the dictionary size. The half-sampling is repeated on `n_null_stability` placements; `null_max_freq` is the highest frequency any gene reached on them. It is often high: a randomly placed target also has a gene that fits it best in every half, so frequency on its own is not evidence.
+
+Modules: within the selected set, every gene is regressed on the other selected genes (bands stacked); a gene with R² ≥ `cover` is linked to the gene with the largest coefficient; connected components are the modules. `conf.modules` gives each module's members with their signs, `alone` (the members fitted together), `p` (against the best module of each placement) and `drop` (the whole module removed). The supported genes fitted together on the held-out strips (`supported_fit`) show what the trusted genes reproduce without the rest of the list.
+
+Everything is computed with the same strips as the main fit. The p values are one-sided and test placement only: they say that the gene's pattern follows the target better than chance, not that its sign or its band label is right.
+
 ## Known limits
 
-1. Contributions carry no significance. Collinear genes share credit with the first one selected; the module table makes the sharing visible but does not test it.
+1. Gene-level p values are against random placements of the target and are one-sided. Collinear genes share credit with the first one selected in the full fit; `confidence` reports each of them on its own and groups them, but it does not say which member of a module is the cause.
 2. The score does not penalise a region drawn too large.
 3. Everything is linear.
 4. Mid-band explanations need a pitch well below the structure size.
