@@ -17,11 +17,13 @@ def log_cp10k(counts):
     return np.log1p(counts * (1e4 / np.maximum(tot, 1))[:, None]), tot
 
 
-def select_dictionary(Xn, genes, n=500, exclude=(), min_detect=0.05, drop_prefixes=("MT-", "RPL", "RPS")):
+def select_dictionary(Xn, genes, n=500, exclude=(), min_detect=0.05, drop_prefixes=("MT-", "RPL", "RPS"), include=()):
     """Indices of the ``n`` most variable genes, excluding named genes and housekeeping prefixes.
 
     ``Xn`` is the normalised matrix (spots x genes); ``exclude`` should contain every gene that
-    was used to define the target, so that the explanation cannot be circular.
+    was used to define the target, so that the explanation cannot be circular. ``include``
+    names genes that enter the dictionary whatever their variance (unless excluded); the
+    most variable genes fill the remaining places, so the dictionary has ``n`` genes or more.
     """
     genes = np.asarray(genes).astype(str)
     N = Xn.shape[0]
@@ -39,6 +41,9 @@ def select_dictionary(Xn, genes, n=500, exclude=(), min_detect=0.05, drop_prefix
     ok &= ~np.isin(genes, list(exclude))
     order = np.argsort(-np.where(ok, var, -np.inf))[:n]
     order = order[np.isfinite(np.where(ok, var, -np.inf)[order])]
+    forced = np.where(np.isin(genes, list(include)) & ~np.isin(genes, list(exclude)) & (detected > 0))[0]
+    if len(forced):
+        order = np.concatenate([order, forced[~np.isin(forced, order)]])
     return order
 
 

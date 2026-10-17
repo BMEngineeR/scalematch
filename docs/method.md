@@ -10,6 +10,7 @@
 | `target` | bool / 0-1 (region) or float (field), one value per unit | required |
 | `pitch_um` | centre-to-centre spacing of the units in micrometres | required |
 | `exclude_genes` | genes used to define the target; removed from the dictionary | `()` |
+| `include_genes` | genes admitted to the dictionary whatever their variance | `()` |
 | `sigmas` | `(σ_S, σ_L)` in µm: HIGH < σ_S < MID < σ_L < LOW | `(40, 200)` |
 | `n_genes` | dictionary size (most variable genes after exclusions) | 500 |
 | `kmax` | gene budget of the sparse fit | 30 |
@@ -60,6 +61,8 @@ Full-data fit at `kmax`. Contribution of gene j in band b: `c_{b,j} = z_{b,j} β
 * `freq`: selection frequency among the first `k_sel` genes over `n_resample` half-samplings of the section (complementary halves of square tiles of side `tile_um`, default 2 σ_L, shrunk until there are at least 30 tiles); `sign_consistency` is how often the coefficient in the gene's dominant band keeps its sign when the gene is selected. `expected_false_stable` is the Meinshausen–Bühlmann bound `q² / ((2 τ − 1) p)` with `q` the mean number of genes selected per run and `p` the dictionary size. The half-sampling is repeated on `n_null_stability` placements; `null_max_freq` is the highest frequency any gene reached on them. It is often high: a randomly placed target also has a gene that fits it best in every half, so frequency on its own is not evidence.
 
 Modules: within the selected set, every gene is regressed on the other selected genes (bands stacked); a gene with R² ≥ `cover` is linked to the gene with the largest coefficient; connected components are the modules. `conf.modules` gives each module's members with their signs, `alone` (the members fitted together), `p` (against the best module of each placement) and `drop` (the whole module removed). The supported genes fitted together on the held-out strips (`supported_fit`) show what the trusted genes reproduce without the rest of the list.
+
+`scan_alone` extends the first reading to the whole matrix: every gene detected in at least `min_detect` of the units (default 1%) is band-split in chunks of `chunk` genes, scored alone on the same strips, and compared with the best gene of the same scan on `n_null` placements; nothing larger than one chunk stays in memory, so the cost is the band split times the number of chunks. `explain(..., include_genes=...)` then admits any of those genes to the dictionary whatever their variance.
 
 Everything is computed with the same strips as the main fit. The p values are one-sided and test placement only: they say that the gene's pattern follows the target better than chance, not that its sign or its band label is right.
 

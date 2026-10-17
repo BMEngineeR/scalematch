@@ -83,7 +83,7 @@ class Result:
         open(os.path.join(outdir, "summary.txt"), "w").write(self.summary() + "\n")
 
 
-def explain(counts, genes, coords, target, pitch_um, *, exclude_genes=(), sigmas=(40.0, 200.0), n_genes=500,
+def explain(counts, genes, coords, target, pitch_um, *, exclude_genes=(), include_genes=(), sigmas=(40.0, 200.0), n_genes=500,
             kmax=30, n_strips=5, strip_axis="target", designs=("perband", "raw"), null_kinds=("rigid",), n_null=40,
             graph_kind="auto", min_detect=0.05, seed=0, verbose=True):
     """Explain ``target`` (a 0/1 region or a continuous field over the units) by a gene dictionary.
@@ -93,6 +93,8 @@ def explain(counts, genes, coords, target, pitch_um, *, exclude_genes=(), sigmas
     coords       units x 2 coordinates, any unit; ``pitch_um`` gives the centre-to-centre spacing in micrometres
     target       length-units array: bool/0-1 for a region, float for a field
     exclude_genes  genes used to define the target (they are removed from the dictionary)
+    include_genes  genes added to the dictionary whatever their variance (for example the genes a
+                 whole-matrix ``scan_alone`` found outside the most variable ones)
     sigmas       (sigma_S, sigma_L) in micrometres: HIGH < sigma_S < MID < sigma_L < LOW
     null_kinds   any of "rigid", "surrogate", "blob" (blob only for a region)
     strip_axis   "target": held-out strips cut across the region's own principal axis so every strip
@@ -115,10 +117,10 @@ def explain(counts, genes, coords, target, pitch_um, *, exclude_genes=(), sigmas
 
     # dictionary
     Xn, tot = dictionary.log_cp10k(counts[keep] if not hasattr(counts, "tocsr") else counts.tocsr()[keep])
-    idx = dictionary.select_dictionary(Xn, genes, n=n_genes, exclude=exclude_genes, min_detect=min_detect)
+    idx = dictionary.select_dictionary(Xn, genes, n=n_genes, exclude=exclude_genes, min_detect=min_detect, include=include_genes)
     X = dictionary.dense_columns(Xn, idx)
     gsel = np.asarray(genes).astype(str)[idx]
-    log(f"dictionary: {X.shape[1]} genes, {len(exclude_genes)} excluded by name")
+    log(f"dictionary: {X.shape[1]} genes, {len(exclude_genes)} excluded by name" + (f", {len(include_genes)} included by name" if len(include_genes) else ""))
 
     # bands
     ybands = {b: v for b, v in bands.split(L, y, pitch_um, sigmas).items()}

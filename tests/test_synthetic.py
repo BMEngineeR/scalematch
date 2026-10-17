@@ -1,6 +1,6 @@
 """Fast checks on a synthetic lattice: bands add up, a planted region is recovered, nulls score lower."""
 import numpy as np
-from scalematch import explain, confidence, build_graph, split, make_strips
+from scalematch import explain, confidence, scan_alone, build_graph, split, make_strips
 
 
 def make_section(seed=0, n=40):
@@ -57,3 +57,18 @@ def test_confidence_supports_planted_genes():
     assert conf.supported_fit["best"] > 0.6
     assert conf.null_max_alone.max() < conf.table.alone.max()
     assert {"alone", "p", "drop", "freq", "sign_consistency", "module"} <= set(conf.table.columns)
+
+
+def test_scan_alone_matches_confidence_and_finds_planted_genes():
+    counts, genes, coords, region, A, L, pitch = make_section()
+    df = scan_alone(counts, genes, coords, region, pitch_um=10.0, sigmas=(30, 120), n_null=20, chunk=50, verbose=False)
+    planted = {"G000", "G001", "G002", "G003", "G004"}
+    assert set(df.head(5).gene) == planted
+    assert (df[df.gene.isin(planted)].p <= 0.05).all()
+    res = explain(counts, genes, coords, region, pitch_um=10.0, sigmas=(30, 120), n_genes=100, kmax=10,
+                  designs=("perband",), null_kinds=(), n_null=0, verbose=False)
+    conf = confidence(res, n_null=2, n_resample=10, k_sel=6, n_null_stability=1, n_resample_null=5, verbose=False)
+    a = df.set_index("gene").alone
+    b = conf.table.set_index("gene").alone
+    common = [g for g in b.index if g in a.index]
+    assert np.allclose(a[common].to_numpy(), b[common].to_numpy(), atol=1e-6)

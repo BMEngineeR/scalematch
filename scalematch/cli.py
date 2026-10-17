@@ -16,6 +16,7 @@ def main(argv=None):
     e.add_argument("--signature", nargs="*", default=None, help="gene list: target = mean log CP10K of these genes (excluded from the dictionary)")
     e.add_argument("--sigmas", nargs=2, type=float, default=(40.0, 200.0), metavar=("SIGMA_S", "SIGMA_L"))
     e.add_argument("--n-genes", type=int, default=500)
+    e.add_argument("--include", nargs="*", default=(), help="genes added to the dictionary whatever their variance")
     e.add_argument("--kmax", type=int, default=30)
     e.add_argument("--nulls", nargs="*", default=["rigid"], choices=["rigid", "surrogate", "blob"])
     e.add_argument("--n-null", type=int, default=40)
@@ -52,7 +53,7 @@ def main(argv=None):
             target = col.to_numpy().astype(float)
     else:
         sys.exit("give --target-obs or --signature")
-    res = explain(counts, genes, coords, target, a.pitch_um, exclude_genes=exclude, sigmas=tuple(a.sigmas),
+    res = explain(counts, genes, coords, target, a.pitch_um, exclude_genes=exclude, include_genes=tuple(a.include), sigmas=tuple(a.sigmas),
                   n_genes=a.n_genes, kmax=a.kmax, designs=tuple(a.designs), null_kinds=tuple(a.nulls), n_null=a.n_null, seed=a.seed)
     if a.confidence:
         from .confidence import confidence
